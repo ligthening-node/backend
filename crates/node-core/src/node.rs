@@ -195,6 +195,12 @@ impl LightningNode {
         push_msat: Option<u64>,
     ) -> Result<String, NodeError> {
         let (node_id, address) = parse_peer(node_id, address)?;
+        let connected = self
+            .inner
+            .list_peers()
+            .iter()
+            .any(|peer| peer.node_id == node_id && peer.is_connected);
+        check_peer_connected(connected)?;
         check_channel_size(amount_sat, push_msat)?;
         let id = self
             .inner
@@ -425,6 +431,20 @@ fn pending_view(tx: &PendingTx) -> PaymentView {
     };
 }
 
+// === Peer connection
+
+/// A channel can only be opened with a peer the node is connected to right now. ldk-node would
+/// otherwise dial the peer itself, which hides that the connection was missing or has dropped.
+fn check_peer_connected(connected: bool) -> Result<(), NodeError> {
+    if !connected {
+        return Err(NodeError::InvalidInput(
+            "not connected to that peer: connect to it on the Peers card first, then open the channel"
+                .to_string(),
+        ));
+    }
+    return Ok(());
+}
+
 // === Channel size
 
 /// Refuses a channel the node would fail to open, with a message that says why.
@@ -479,6 +499,12 @@ mod tests {
 
     fn message(result: Result<(), NodeError>) -> String {
         return result.unwrap_err().to_string();
+    }
+
+    #[test]
+    fn a_channel_needs_a_connected_peer() {
+        assert!(message(check_peer_connected(false)).contains("not connected to that peer"));
+        assert!(check_peer_connected(true).is_ok());
     }
 
     #[test]

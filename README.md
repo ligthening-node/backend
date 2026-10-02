@@ -1,4 +1,4 @@
-# Lightning Tool: backend
+ahead# Lightning Tool: backend
 
 A Rust workspace that powers the Lightning Tool. It contains a hand-written **BOLT11 invoice decoder**, a thin wrapper
 around **ldk-node** that runs a real Lightning node, and a **localhost REST API** in front of both. The same decoder
@@ -14,18 +14,34 @@ protocol work, with plain-language errors instead of a bare "payment failed".
 
 ## Table of contents
 
+- [Table of contents](#table-of-contents)
 - [What it does](#what-it-does)
 - [Architecture](#architecture)
+  - [Layers](#layers)
+  - [Paying an invoice, step by step](#paying-an-invoice-step-by-step)
 - [Crates](#crates)
 - [Quick start](#quick-start)
+  - [Prerequisites](#prerequisites)
+  - [1. Start bitcoind (regtest)](#1-start-bitcoind-regtest)
+  - [2. Run the main node](#2-run-the-main-node)
+  - [3. Run a second node to open channels with](#3-run-a-second-node-to-open-channels-with)
+  - [4. Fund the node and mine blocks](#4-fund-the-node-and-mine-blocks)
+  - [Decode an invoice from the terminal](#decode-an-invoice-from-the-terminal)
 - [Configuration](#configuration)
 - [REST API](#rest-api)
+  - [Errors](#errors)
+  - [Example session](#example-session)
 - [Payment safety rules](#payment-safety-rules)
 - [Code snippets](#code-snippets)
+  - [Decode an invoice](#decode-an-invoice)
+  - [Why a payment cannot go out](#why-a-payment-cannot-go-out)
+  - [Constant-time token check](#constant-time-token-check)
+  - [Live events](#live-events)
 - [Generated code for the frontend](#generated-code-for-the-frontend)
 - [Testing](#testing)
 - [Docker](#docker)
 - [Project layout](#project-layout)
+- [License](#license)
 
 ---
 
@@ -227,7 +243,7 @@ values can exceed the safe integer range of JavaScript.
 | `POST` | `/wallet/send` | Send on-chain. |
 | `GET` / `POST` | `/peers` | List peers, connect to a peer. |
 | `POST` | `/peers/disconnect` | Disconnect from a peer. |
-| `GET` / `POST` | `/channels` | List channels, open a channel. |
+| `GET` / `POST` | `/channels` | List channels, open a channel. Opening needs a peer that is connected right now (`POST /peers` first), otherwise it is refused. |
 | `POST` | `/channels/close` | Close a channel (cooperative or force). |
 | `POST` | `/invoices` | Create a BOLT11 invoice. |
 | `GET` / `POST` | `/payments` | List payments, pay an invoice. |
@@ -285,6 +301,7 @@ one is given.
 | Channels still confirming or peer offline | "None of your channels is usable right now..." |
 | Balance is only the reserve | "...all of it is the reserve, which cannot be spent." |
 | More than the spendable balance | "That is more than you can send. You can spend X sat..." |
+| Opening a channel with a peer that is not connected | "not connected to that peer: connect to it on the Peers card first, then open the channel" |
 | Payment equal to or above the channel size | "A 200,000 sat channel cannot carry a payment of 200,000 sat or more." |
 
 A payment **below** the channel size goes through as long as the balance covers it, so 50,000 or 100,000 sat works on a
