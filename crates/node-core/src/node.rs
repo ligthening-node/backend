@@ -24,11 +24,14 @@ use crate::views::{
     PaymentState, PaymentView, PeerView, SentPayment,
 };
 
-/// Smallest channel the node can open. Opening costs about 1,100 sat (the first commitment fee plus
-/// the anchor outputs); below that ldk-node refuses with a message that never reaches the caller.
-pub const MIN_CHANNEL_SAT: u64 = 5_000;
-/// What must stay on the opener's side after the push, to cover those costs with margin.
-pub const MIN_OUR_SIDE_SAT: u64 = 2_500;
+/// Smallest channel the app accepts. ldk-node itself needs about 3,000 sat for a channel that can
+/// carry anything (opening fee plus the reserve each side keeps), so smaller ones may still fail
+/// when opened; `open_channel` then explains why instead of returning a bare "failed".
+pub const MIN_CHANNEL_SAT: u64 = 500;
+/// What must stay on the opener's side after the push.
+pub const MIN_OUR_SIDE_SAT: u64 = 500;
+/// Smallest channel seen to open and become usable on regtest.
+const SMALLEST_WORKING_CHANNEL_SAT: u64 = 3_000;
 
 /// Cheap to clone: every clone shares the same running node.
 ///
@@ -195,7 +198,8 @@ impl LightningNode {
         check_channel_size(amount_sat, push_msat)?;
         let id = self
             .inner
-            .open_channel(node_id, address, amount_sat, push_msat, None)?;
+            .open_channel(node_id, address, amount_sat, push_msat, None)
+            .map_err(|err| small_channel_error(amount_sat, err))?;
         return Ok(id.0.to_string());
     }
 
@@ -444,6 +448,18 @@ fn check_channel_size(amount_sat: u64, push_msat: Option<u64>) -> Result<(), Nod
     return Ok(());
 }
 
+/// ldk-node answers a refused channel with a bare "Failed to create channel". For a small one the
+/// cause is known, so say it.
+fn small_channel_error(amount_sat: u64, err: ldk_node::NodeError) -> NodeError {
+    let refused = matches!(err, ldk_node::NodeError::ChannelCreationFailed);
+    if amount_sat < SMALLEST_WORKING_CHANNEL_SAT && refused {
+        return NodeError::InvalidInput(format!(
+            "the node could not open a {amount_sat} sat channel: the opening fee and the reserve each side must keep leave nothing to spend. Try {SMALLEST_WORKING_CHANNEL_SAT} sat or more."
+        ));
+    }
+    return NodeError::from(err);
+}
+
 // === Parsing
 
 fn parse_pubkey(value: &str) -> Result<PublicKey, NodeError> {
@@ -467,14 +483,15 @@ mod tests {
 
     #[test]
     fn a_channel_below_the_minimum_is_refused() {
-        assert!(message(check_channel_size(1_000, None)).contains("at least 5000"));
+        assert!(message(check_channel_size(100, None)).contains("at least 500"));
+        assert!(check_channel_size(500, None).is_ok());
         assert!(check_channel_size(5_000, None).is_ok());
     }
 
     #[test]
     fn the_push_must_leave_enough_on_our_side() {
-        assert!(message(check_channel_size(5_000, Some(2_600_000))).contains("leave at least 2500"));
-        assert!(check_channel_size(5_000, Some(2_500_000)).is_ok());
+        assert!(message(check_channel_size(5_000, Some(4_600_000))).contains("leave at least 500"));
+        assert!(check_channel_size(5_000, Some(4_500_000)).is_ok());
         assert!(message(check_channel_size(5_000, Some(5_000_000))).contains("smaller than"));
     }
 }
