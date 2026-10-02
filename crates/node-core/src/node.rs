@@ -30,8 +30,11 @@ use crate::views::{
 pub const MIN_CHANNEL_SAT: u64 = 500;
 /// What must stay on the opener's side after the push.
 pub const MIN_OUR_SIDE_SAT: u64 = 500;
-/// Smallest channel seen to open and become usable on regtest.
-const SMALLEST_WORKING_CHANNEL_SAT: u64 = 3_000;
+/// A channel this size or larger opens on regtest. The vendored ldk-node pins the regtest fee rate so
+/// the first commitment costs about 500 sat; after that fee and the anchors, each side must still
+/// keep a 1,000 sat reserve, which puts the real floor at about 2,300 sat. Smaller sizes are only
+/// explained, never promised.
+const SMALLEST_WORKING_CHANNEL_SAT: u64 = 2_500;
 
 /// Cheap to clone: every clone shares the same running node.
 ///

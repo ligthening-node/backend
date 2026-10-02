@@ -41,6 +41,10 @@ use crate::logger::{log_bytes, log_error, log_info, log_trace, LdkLogger, Logger
 use crate::types::{ChainMonitor, ChannelManager, DynStore, Sweeper, Wallet};
 use crate::{Error, NodeMetrics};
 
+/// Local patch: the fee rate regtest nodes use, in sat per 1000 weight units. It makes the first
+/// commitment transaction of a new channel cost about 500 sat.
+const REGTEST_FEE_RATE_SAT_PER_KWU: u64 = 276;
+
 const CHAIN_POLLING_INTERVAL_SECS: u64 = 2;
 const CHAIN_POLLING_TIMEOUT_SECS: u64 = 10;
 
@@ -529,6 +533,10 @@ impl BitcoindChainSource {
 			};
 
 			let fee_rate = match (fee_rate_update_res, self.config.network) {
+				// Local patch: regtest has no real fee market, and bitcoind's estimate climbs as
+				// test blocks fill up, which pushes the cost of opening a channel to thousands of
+				// sat. Pin it, so opening a channel always costs about 500 sat.
+				(_, Network::Regtest) => FeeRate::from_sat_per_kwu(REGTEST_FEE_RATE_SAT_PER_KWU),
 				(Ok(rate), _) => rate,
 				(Err(e), Network::Bitcoin) => {
 					// Strictly fail on mainnet.

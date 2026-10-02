@@ -149,9 +149,13 @@ sequenceDiagram
 | [`node-core`](crates/node-core) | Wrapper around ldk-node: lifecycle, on-chain wallet, peers, channels, invoices, payments, events. The seed stays inside ldk-node's storage directory and is never exposed. |
 | [`api-server`](crates/api-server) | axum REST API that binds to loopback, checks a bearer token and runs payment policy before paying. |
 
-`vendor/ldk-node` is a local copy of ldk-node 0.7.0 with **one change**: channels accept a payment of up to 100% of
-their size (upstream caps it at 10%). See `vendor/ldk-node/src/config.rs` and the `[patch.crates-io]` entry in
-`Cargo.toml`.
+`vendor/ldk-node` is a local copy of ldk-node 0.7.0 with **two changes**, both in `[patch.crates-io]` in `Cargo.toml`:
+
+1. Channels accept a payment of up to 100% of their size (upstream caps it at 10%). See `src/config.rs`.
+2. On regtest the fee rate is pinned (`REGTEST_FEE_RATE_SAT_PER_KWU` in `src/chain/bitcoind.rs`), so the first
+   commitment transaction of a new channel costs about 500 sat. Without it, bitcoind's estimate climbs as test blocks
+   fill up and the opening fee reaches thousands of sat (3,156 sat was seen), which pushed the smallest working channel
+   from about 2,300 sat to over 4,000 sat. With the pinned fee, a 2,300 sat channel opens and is usable.
 
 ## Quick start
 
