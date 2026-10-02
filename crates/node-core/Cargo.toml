@@ -1,0 +1,24 @@
+[package]
+name = "node-core"
+description = "Lightning node for the Lightning Tool, built on ldk-node"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+invoice-core.workspace = true
+ldk-node.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json"] }
+ts-rs = { workspace = true, optional = true }
+
+[features]
+# Generates TypeScript bindings for the frontend: `cargo test --features ts export_bindings`.
+ts = ["dep:ts-rs"]
+
+[lints]
+workspace = true
+

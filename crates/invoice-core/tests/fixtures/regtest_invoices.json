@@ -1,0 +1,14 @@
+[
+  {
+    "title": "ldk-node 0.7, regtest, 50000 sat, 600 s expiry, route hint over a private channel",
+    "invoice": "lnbcrt500u1p4th586dq5d96x2um5yp3k7enxv4jsnp4q0z8n7gs7w34etqrrm4gdn36e83qnujh705d8lld7xygv8t3rrfwypp5yep997a3ltkyj9a7sam00wds0nlt38ey5rvwfe4n0y2e3uv2mnfssp5554l3lz6ymp7cth7ewj9tqrhpd84wp4p7z2cn3ghyrvkjdhk50kq9qyysgqcqzp2xqzjcrzjqweswj26mpkzaculnjg0e74957avm4j5l9l35cfwgy4asvpl2j4rwqqqqyqqf4sqqcqqqqlgqqqqqqqqfqjr77cwzwgja7y8e0tc7am745qma38whll5xcclkf7pqpfxx9l56k3flp4h7vk9uvc45jaamn8pzd3knw7snlvjnedher28dcmr5etsgp9k33rp",
+    "amount_msat": 50000000,
+    "expiry_secs": 600
+  },
+  {
+    "title": "ldk-node 0.7, regtest, any amount, 60 s expiry, route hint over a private channel",
+    "invoice": "lnbcrt1p4th58mdq9w35hqnp4q0z8n7gs7w34etqrrm4gdn36e83qnujh705d8lld7xygv8t3rrfwypp5m8r8xqq89gywq35cs692nhkpe0s93j5etfngtxxfj6z4upynlr8ssp55wjt7zay6x9duml55l67877ueypdng8qe5rs0a38dgzgm8etfvfq9qyysgqcqzp2xqzpurzjqweswj26mpkzaculnjg0e74957avm4j5l9l35cfwgy4asvpl2j4rwqqqqyqqf4sqqcqqqqlgqqqqqqqqfqje85tmzwge9npduz3qdll24x3c3hawuhff8yd4a5rtkr3yc52kr8v8hdxvg9uttjectk68j9vd9nvg57ur76lzvpj5yk25g5ekfyvjgq7wwhwr",
+    "amount_msat": null,
+    "expiry_secs": 60
+  }
+]

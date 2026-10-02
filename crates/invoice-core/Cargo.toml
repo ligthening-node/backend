@@ -1,0 +1,26 @@
+[package]
+name = "invoice-core"
+description = "Hand-written BOLT11 invoice decoder and validator"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+bitcoin.workspace = true
+secp256k1.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+ts-rs = { workspace = true, optional = true }
+
+[features]
+# Generates TypeScript bindings for the frontend: `cargo test --features ts export_bindings`.
+ts = ["dep:ts-rs"]
+
+[dev-dependencies]
+lightning-invoice.workspace = true
+serde_json.workspace = true
+proptest.workspace = true
+
+[lints]
+workspace = true

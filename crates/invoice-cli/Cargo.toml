@@ -1,0 +1,17 @@
+[package]
+name = "invoice-cli"
+description = "Command-line BOLT11 decoder built on invoice-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+invoice-core.workspace = true
+bitcoin.workspace = true
+clap.workspace = true
+chrono.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

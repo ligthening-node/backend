@@ -1,0 +1,6 @@
+/target
+*.log
+.env*
+!.env.example
+/ldk-data/
+/cargo

@@ -1,0 +1,29 @@
+[package]
+name = "invoice-wasm"
+description = "Browser build of invoice-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+invoice-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+wasm-bindgen.workspace = true
+# Smaller precomputed tables: about 1 MB less .wasm, and verifying one signature stays instant.
+secp256k1 = { workspace = true, features = ["lowmemory"] }
+ts-rs = { workspace = true, optional = true }
+
+[features]
+ts = ["dep:ts-rs", "invoice-core/ts"]
+
+[lints]
+workspace = true
+
+# Current Rust emits bulk-memory and related instructions by default; wasm-opt must be told to accept them.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-Os", "--enable-bulk-memory", "--enable-nontrapping-float-to-int", "--enable-sign-ext", "--enable-mutable-globals", "--enable-reference-types", "--enable-multivalue"]
