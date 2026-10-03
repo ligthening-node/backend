@@ -24,17 +24,15 @@ use crate::views::{
     PaymentState, PaymentView, PeerView, SentPayment,
 };
 
-/// Smallest channel the app accepts. ldk-node itself needs about 3,000 sat for a channel that can
-/// carry anything (opening fee plus the reserve each side keeps), so smaller ones may still fail
-/// when opened; `open_channel` then explains why instead of returning a bare "failed".
-pub const MIN_CHANNEL_SAT: u64 = 500;
-/// What must stay on the opener's side after the push.
-pub const MIN_OUR_SIDE_SAT: u64 = 500;
-/// A channel this size or larger opens on regtest. The vendored ldk-node pins the regtest fee rate so
-/// the first commitment costs about 500 sat; after that fee and the anchors, each side must still
-/// keep a 1,000 sat reserve, which puts the real floor at about 2,300 sat. Smaller sizes are only
-/// explained, never promised.
-const SMALLEST_WORKING_CHANNEL_SAT: u64 = 2_500;
+/// Smallest channel that can work. The peer must find a 1,000 sat reserve on each side after the
+/// opening costs: about 500 sat for the first commitment (the vendored ldk-node pins the regtest fee
+/// rate) and 660 sat for the two anchor outputs. 1,000 + 500 + 660 is about 2,160 sat, and 2,300 sat
+/// was the smallest size that opened and became usable in testing. Anything smaller is accepted by
+/// the opener and then closed by the peer ("Suitable channel reserve not found"), so it is refused
+/// here with the reason instead.
+pub const MIN_CHANNEL_SAT: u64 = 2_300;
+/// What must stay on the opener's side after the push, to cover the same costs.
+pub const MIN_OUR_SIDE_SAT: u64 = 2_300;
 
 /// Cheap to clone: every clone shares the same running node.
 ///
@@ -207,8 +205,7 @@ impl LightningNode {
         check_channel_size(amount_sat, push_msat)?;
         let id = self
             .inner
-            .open_channel(node_id, address, amount_sat, push_msat, None)
-            .map_err(|err| small_channel_error(amount_sat, err))?;
+            .open_channel(node_id, address, amount_sat, push_msat, None)?;
         return Ok(id.0.to_string());
     }
 
@@ -454,7 +451,7 @@ fn check_peer_connected(connected: bool) -> Result<(), NodeError> {
 fn check_channel_size(amount_sat: u64, push_msat: Option<u64>) -> Result<(), NodeError> {
     if amount_sat < MIN_CHANNEL_SAT {
         return Err(NodeError::InvalidInput(format!(
-            "channel capacity must be at least {MIN_CHANNEL_SAT} sat to cover the opening fee"
+            "channel capacity must be at least {MIN_CHANNEL_SAT} sat: each side keeps a 1,000 sat reserve and opening costs about 1,160 sat, so a smaller channel is closed by the peer"
         )));
     }
     let push_sat = push_msat.unwrap_or(0) / 1000;
@@ -469,18 +466,6 @@ fn check_channel_size(amount_sat: u64, push_msat: Option<u64>) -> Result<(), Nod
         )));
     }
     return Ok(());
-}
-
-/// ldk-node answers a refused channel with a bare "Failed to create channel". For a small one the
-/// cause is known, so say it.
-fn small_channel_error(amount_sat: u64, err: ldk_node::NodeError) -> NodeError {
-    let refused = matches!(err, ldk_node::NodeError::ChannelCreationFailed);
-    if amount_sat < SMALLEST_WORKING_CHANNEL_SAT && refused {
-        return NodeError::InvalidInput(format!(
-            "the node could not open a {amount_sat} sat channel: the opening fee and the reserve each side must keep leave nothing to spend. Try {SMALLEST_WORKING_CHANNEL_SAT} sat or more."
-        ));
-    }
-    return NodeError::from(err);
 }
 
 // === Parsing
@@ -512,15 +497,18 @@ mod tests {
 
     #[test]
     fn a_channel_below_the_minimum_is_refused() {
-        assert!(message(check_channel_size(100, None)).contains("at least 500"));
-        assert!(check_channel_size(500, None).is_ok());
+        // 500, 1,000 and 2,000 sat were all closed by the peer: the reserve leaves nothing.
+        for too_small in [500, 1_000, 2_000, 2_299] {
+            assert!(message(check_channel_size(too_small, None)).contains("at least 2300"));
+        }
+        assert!(check_channel_size(2_300, None).is_ok());
         assert!(check_channel_size(5_000, None).is_ok());
     }
 
     #[test]
     fn the_push_must_leave_enough_on_our_side() {
-        assert!(message(check_channel_size(5_000, Some(4_600_000))).contains("leave at least 500"));
-        assert!(check_channel_size(5_000, Some(4_500_000)).is_ok());
+        assert!(message(check_channel_size(5_000, Some(2_800_000))).contains("leave at least 2300"));
+        assert!(check_channel_size(5_000, Some(2_700_000)).is_ok());
         assert!(message(check_channel_size(5_000, Some(5_000_000))).contains("smaller than"));
     }
 }

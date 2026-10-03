@@ -305,6 +305,7 @@ one is given.
 | Channels still confirming or peer offline | "None of your channels is usable right now..." |
 | Balance is only the reserve | "...all of it is the reserve, which cannot be spent." |
 | More than the spendable balance | "That is more than you can send. You can spend X sat..." |
+| Opening a channel smaller than 2,300 sat | "channel capacity must be at least 2300 sat: each side keeps a 1,000 sat reserve and opening costs about 1,160 sat, so a smaller channel is closed by the peer" |
 | Opening a channel with a peer that is not connected | "not connected to that peer: connect to it on the Peers card first, then open the channel" |
 | Payment equal to or above the channel size | "A 200,000 sat channel cannot carry a payment of 200,000 sat or more." |
 
